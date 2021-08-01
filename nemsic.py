@@ -7,7 +7,7 @@ import time
 from smtplib import SMTP                  # use this for standard SMTP protocol   (port 25, no encryption)
 import adafruit_dht
 from email.mime.text import MIMEText
-
+import logging
 
 SMTPserver = 'smtp.office365.com'
 port =587
@@ -20,15 +20,17 @@ PASSWORD = "Y3QLt66TLGRkxNt"
 text_subtype = 'plain'
 subject="NemSıc Alarm"
 lastAlarmSent=""
-sys.stdout=open("NemSıc.log","a")
-
+logging.basicConfig(filename='NemSıc.log', level=logging.DEBUG) #log tutmak için
+sensorPins={23:"Oda Sensoru", #birdençok sensor eklenebilir
+            #24:"Buzdolabı Sensoru",
+            }
 #DHT işlemleri
 def get_data(sensorpin):
     den=0
     sıc=None
     nem=None
-    while den<25:
-        try: #25 defa sensor okumayı denesin diye
+    while den<25: #25 defa sensor okumayı denesin diye, olmazsa None dönsün
+        try: 
             dhtDevice = adafruit_dht.DHT11(sensorpin)
             sıc=dhtDevice.temperature
             nem=dhtDevice.humidity
@@ -37,21 +39,24 @@ def get_data(sensorpin):
         except:
             dhtDevice.exit()
             den+=1
-            print("Sensor okunamadı: Deneme {}".format(den))
+            logging.error("Sensor okunamadı: Deneme {}".format(den))
             time.sleep(0.77)
             continue
     return (sıc,nem)
 
 
-def sendalarm(sıc,nem):
-    content="\n{}\nSıcaklık:{}°C\nNem:%{}".format(str(time.ctime()),sıc,nem)
+def sendalarm(okunanDeğerler):
+    content="\n{}".format(str(time.ctime()))# şimdiki zamanı ekleme
+    for sensor in okunanDeğerler:
+        sıc,nem=okunanDeğerler[sensor]
+        content+="\nSensor:{}\tSıcaklık:{}°C\tNem:%{}".format(sensor,sıc,nem) #ne kadar sensor varsa okumaları listeleme
     msg = MIMEText(content, text_subtype)
     msg['Subject']=       subject
     msg['From']   = sender # some SMTP servers will do this automatically, not all
     try:
         conn = SMTP(SMTPserver,port)
     except:
-        print("Email sunucusuna bağlanılamadı.")
+        logging.error("Email sunucusuna bağlanılamadı.")
         return
     #conn.set_debuglevel(1)
     conn.ehlo()
@@ -59,28 +64,33 @@ def sendalarm(sıc,nem):
     try:
         conn.login(USERNAME, PASSWORD)
     except:
-        print("Login Hatası")
+        logging.error("Login Hatası")
         return
     #try:
         #print("{} tarafından {} adresine {} konulu mesaj yollanıyor...",format(sender,destination,subject))
     try:
         conn.sendmail(sender, destination, msg.as_string())
     except:
-        print("Email gönderimi başarısız")
+        logging.error("Email gönderimi başarısız")
     #except:
         #print("Başaramadık abi")
     #finally:
     conn.quit()
 
 while True:
-    sıc,nem=get_data(23)
-    os.system("echo {},{},{} >> '{}.txt'".format(time.strftime("%H:%M:%S"),sıc,nem,time.strftime("%Y %m"))) #txt dosyasına verileri kaydetme
+    sıcaklıklar=[]
+    okunanDeğerler={sensorPins[i]:get_data(i) for i in sensorPins}
+    #sıc,nem=get_data(23)
     #pyexcel_ods.write_data(str(time.strftime("%Y %m"))+" data.ods",{time.strftime("%d"):[["Saat",time.strftime("%H:%M:%S")],["Sıcaklık",2],["Nem",2]]})
-    if sıc > 25 or sıc==None:
-        sendalarm(sıc,nem)
-    time.sleep(600)
-
-
-sys.stdout.close()
-
+    for sensor in okunanDeğerler:
+        sıc=okunanDeğerler[sensor][0]
+        nem=okunanDeğerler[sensor][1]
+        sıcaklıklar.append(sıc)
+        os.system("echo {},{},{} >> '{}.txt'".format(time.strftime("%H:%M:%S"),sıc,nem,time.strftime("%Y %m"))) #txt dosyasına verileri kaydetme
+    if not all([s for s in sıcaklıklar]):# sensorden None dönüyorsa alarm
+        sendalarm(okunanDeğerler)
+    elif not all([s<25 for s in sıcaklıklar]):#sensor 25 dereceden fazlaysa alarm
+        sendalarm(okunanDeğerler)
+            
+    time.sleep(600) #ölçümler arası 10 dakika
 
