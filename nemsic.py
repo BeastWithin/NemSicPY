@@ -5,7 +5,8 @@ import os
 import re
 import time
 from smtplib import SMTP                  # use this for standard SMTP protocol   (port 25, no encryption)
-import adafruit_dht
+from adafruit_dht import DHT11
+from adafruit_dht import DHT22
 from email.mime.text import MIMEText
 import logging
 
@@ -21,17 +22,19 @@ text_subtype = 'plain'
 subject="NemSıc Alarm"
 lastAlarmSent=""
 logging.basicConfig(filename='NemSıc.log', level=logging.DEBUG) #log tutmak için
-sensorPins={23:"Oda Sensoru", #birdençok sensor eklenebilir
-            #24:"Buzdolabı Sensoru",
+
+sensorPins={23:("Oda Sensoru",DHT11,(0,25)), #birdençok sensor eklenebilir, sensoradı,sensor tipi, istenen sıcaklık aralığı
+            24:("Buzdolabı Sensoru",DHT22,(2,8)),
             }
+
 #DHT işlemleri
-def get_data(sensorpin):
+def get_data(sensorpin,sensortype):
     den=0
     sıc=None
     nem=None
     while den<25: #25 defa sensor okumayı denesin diye, olmazsa None dönsün
         try: 
-            dhtDevice = adafruit_dht.DHT11(sensorpin)
+            dhtDevice = sensortype(sensorpin)
             sıc=dhtDevice.temperature
             nem=dhtDevice.humidity
             dhtDevice.exit() #sensorün yine okunabilmesi için şart. yoksa ligpio işlemi yüzünden hata veriyor. 
@@ -79,7 +82,7 @@ def sendalarm(okunanDeğerler):
 
 while True:
     sıcaklıklar=[]
-    okunanDeğerler={sensorPins[i]:get_data(i) for i in sensorPins}
+    okunanDeğerler={sensorPins[i][0]:get_data(i,sensorPins[i][1]) for i in sensorPins}
     #sıc,nem=get_data(23)
     #pyexcel_ods.write_data(str(time.strftime("%Y %m"))+" data.ods",{time.strftime("%d"):[["Saat",time.strftime("%H:%M:%S")],["Sıcaklık",2],["Nem",2]]})
     for sensor in okunanDeğerler:
@@ -87,10 +90,11 @@ while True:
         nem=okunanDeğerler[sensor][1]
         sıcaklıklar.append(sıc)
         os.system("echo {},{},{} >> '{}.txt'".format(time.strftime("%H:%M:%S"),sıc,nem,time.strftime("%Y %m"))) #txt dosyasına verileri kaydetme
-    if not all([s for s in sıcaklıklar]):# sensorden None dönüyorsa alarm
+    if not all([s for s in sıcaklıklar]):
         sendalarm(okunanDeğerler)
-    elif not all([s<25 for s in sıcaklıklar]):#sensor 25 dereceden fazlaysa alarm
+    elif not all([s<25 for s in sıcaklıklar]):
         sendalarm(okunanDeğerler)
             
-    time.sleep(600) #ölçümler arası 10 dakika
+    time.sleep(600)
+
 
