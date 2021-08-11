@@ -51,8 +51,9 @@ def get_data(sensorpin,sensortype):
 def sendalarm(okunanDeğerler):
     content="\n{}".format(str(time.ctime()))# şimdiki zamanı ekleme
     for sensor in okunanDeğerler:
-        sıc,nem=okunanDeğerler[sensor]
-        content+="\nSensor:{}\tSıcaklık:{}°C\tNem:%{}".format(sensor,sıc,nem) #ne kadar sensor varsa okumaları listeleme
+        sıc,nem=okunanDeğerler[sensor][1]
+        sensoradı=okunanDeğerler[sensor][0]
+        content+="\nSensor:{}\tSıcaklık:{}°C\tNem:%{}".format(sensoradı,sıc,nem) #ne kadar sensor varsa okumaları listeleme
     msg = MIMEText(content, text_subtype)
     msg['Subject']=       subject
     msg['From']   = sender # some SMTP servers will do this automatically, not all
@@ -80,21 +81,34 @@ def sendalarm(okunanDeğerler):
     #finally:
     conn.quit()
 
+def dosyayaKayıt(nem,sıc): #txt dosyasına verileri kaydetme
+    os.system("echo {},{},{} >> '{}.txt'".format(time.strftime("%H:%M:%S"),sıc,nem,time.strftime("%Y %m"))) 
+
+def sıcKontrol(sıc,sıcaralık): #verilen aralık bilgisine göre sıcaklığı kontrol eder, boolean döner
+    if sıc==None: return False
+    elif sıcaralık[0]<=sıc<=sıcaralık[1]: return True
+    else: return False
+    
+
 while True:
-    sıcaklıklar=[]
-    okunanDeğerler={sensorPins[i][0]:get_data(i,sensorPins[i][1]) for i in sensorPins}
+    #sıcaklıklar=[]
+    alarm=False
+    okunanDeğerler={i:(sensorPins[i][0],get_data(i,sensorPins[i][1])) for i in sensorPins}
     #sıc,nem=get_data(23)
     #pyexcel_ods.write_data(str(time.strftime("%Y %m"))+" data.ods",{time.strftime("%d"):[["Saat",time.strftime("%H:%M:%S")],["Sıcaklık",2],["Nem",2]]})
     for sensor in okunanDeğerler:
-        sıc=okunanDeğerler[sensor][0]
-        nem=okunanDeğerler[sensor][1]
-        sıcaklıklar.append(sıc)
-        os.system("echo {},{},{} >> '{}.txt'".format(time.strftime("%H:%M:%S"),sıc,nem,time.strftime("%Y %m"))) #txt dosyasına verileri kaydetme
-    if not all([s for s in sıcaklıklar]):
-        sendalarm(okunanDeğerler)
-    elif not all([s<25 for s in sıcaklıklar]):
-        sendalarm(okunanDeğerler)
+        sıc=okunanDeğerler[sensor][1][0]
+        nem=okunanDeğerler[sensor][1][1]
+        #sıcaklıklar.append(sıc)
+        dosyayaKayıt(nem,sıc)
+        if not sıcKontrol(sıc,sensorPins[sensor][2]): #sensor sıcaklığı ve sensor aralığı
+            alarm=True
+    #if not all([s for s in sıcaklıklar]):
+        #sendalarm(okunanDeğerler)
+    #elif not all([s<25 for s in sıcaklıklar]):
+        #sendalarm(okunanDeğerler)
             
+    if alarm: sendalarm(okunanDeğerler)
     time.sleep(600)
 
 
