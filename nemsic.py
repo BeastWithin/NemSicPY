@@ -4,6 +4,7 @@ import sys
 import os
 import re
 import time
+import requests
 from smtplib import SMTP                  # use this for standard SMTP protocol   (port 25, no encryption)
 from adafruit_dht import DHT11
 from adafruit_dht import DHT22
@@ -49,7 +50,7 @@ def get_data(sensorpin,sensortype):
 
 
 def sendalarm(okunanDeğerler):
-    content="\n{}".format(str(time.ctime()))# şimdiki zamanı ekleme
+    content="\n{}\n{}".format(str(time.ctime()),ipNe())# şimdiki zamanı ekleme
     for sensor in okunanDeğerler:
         sıc,nem=okunanDeğerler[sensor][1]
         sensoradı=okunanDeğerler[sensor][0]
@@ -89,6 +90,12 @@ def sıcKontrol(sıc,sıcaralık): #verilen aralık bilgisine göre sıcaklığ�
     elif sıcaralık[0]<=sıc<=sıcaralık[1]: return True
     else: return False
     
+def ipNe():
+    ip=None
+    try:
+        ip=requests.get("http://ipecho.net/plain?").text
+    finally:
+        return ip
 
 while True:
     #sıcaklıklar=[]
