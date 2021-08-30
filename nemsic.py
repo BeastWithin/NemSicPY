@@ -2,7 +2,6 @@
 # -*- coding: utf-8 -*-
 import sys
 import os
-import re
 import time
 import requests
 from smtplib import SMTP                  # use this for standard SMTP protocol   (port 25, no encryption)
@@ -24,8 +23,9 @@ subject="NemSıc Alarm"
 lastAlarmSent=""
 logging.basicConfig(filename='NemSıc.log', level=logging.DEBUG) #log tutmak için
 
-sensorPins={23:("Oda Sensoru",DHT11,(0,25)), #birdençok sensor eklenebilir, sensoradı,sensor tipi, istenen sıcaklık aralığı
+sensorPins={23:("Oda Sensoru1",DHT11,(0,25)), #birdençok sensor eklenebilir, sensoradı,sensor tipi, istenen sıcaklık aralığı
             24:("Buzdolabı Sensoru",DHT22,(2,8)),
+            25:("Oda Sensoru2",DHT11,(0,25))
             }
 
 #DHT işlemleri
@@ -82,8 +82,8 @@ def sendalarm(okunanDeğerler):
     #finally:
     conn.quit()
 
-def dosyayaKayıt(nem,sıc): #txt dosyasına verileri kaydetme
-    os.system("echo {},{},{} >> '{}.txt'".format(time.strftime("%H:%M:%S"),sıc,nem,time.strftime("%Y %m"))) 
+def dosyayaKayıt(sensoradı,nem,sıc): #csv dosyasına verileri kaydetme
+    os.system("echo '{}\t{}\t{}\t{}' >> '{}.csv'".format(time.strftime("%H:%M:%S"),sensoradı,sıc,nem,time.strftime("%Y %m"))) 
 
 def sıcKontrol(sıc,sıcaralık): #verilen aralık bilgisine göre sıcaklığı kontrol eder, boolean döner
     if sıc==None: return False
@@ -106,8 +106,9 @@ while True:
     for sensor in okunanDeğerler:
         sıc=okunanDeğerler[sensor][1][0]
         nem=okunanDeğerler[sensor][1][1]
+        sensoradı=sensorPins[sensor][0]
         #sıcaklıklar.append(sıc)
-        dosyayaKayıt(nem,sıc)
+        dosyayaKayıt(sensoradı,nem,sıc)
         if not sıcKontrol(sıc,sensorPins[sensor][2]): #sensor sıcaklığı ve sensor aralığı
             alarm=True
     #if not all([s for s in sıcaklıklar]):
