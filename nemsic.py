@@ -23,9 +23,10 @@ subject="NemSıc Alarm"
 lastAlarmSent=""
 logging.basicConfig(filename='NemSıc.log', level=logging.DEBUG) #log tutmak için
 
-sensorPins={23:("Oda Sensoru1",DHT11,(0,25)), #birdençok sensor eklenebilir, sensoradı,sensor tipi, istenen sıcaklık aralığı
-            24:("Buzdolabı Sensoru",DHT22,(2,8)),
-            25:("Oda Sensoru2",DHT11,(0,25))
+sensorPins={
+		23:("Ön Oda",DHT11,(0,32)), #birdençok sensor eklenebilir, sensoradı,sensor tipi, istenen sıcaklık aralığı
+		24:("Buzdolabı Sensoru",DHT22,(2,8)),
+		25:("Laboratuar",DHT11,(0,32))
             }
 
 #DHT işlemleri
@@ -34,11 +35,11 @@ def get_data(sensorpin,sensortype):
     sıc=None
     nem=None
     while den<25: #25 defa sensor okumayı denesin diye, olmazsa None dönsün
-        try: 
+        try:
             dhtDevice = sensortype(sensorpin)
             sıc=dhtDevice.temperature
             nem=dhtDevice.humidity
-            dhtDevice.exit() #sensorün yine okunabilmesi için şart. yoksa ligpio işlemi yüzünden hata veriyor. 
+            dhtDevice.exit() #sensorün yine okunabilmesi için şart. yoksa ligpio işlemi yüzünden hata veriyor.
             break
         except:
             dhtDevice.exit()
@@ -83,13 +84,13 @@ def sendalarm(okunanDeğerler):
     conn.quit()
 
 def dosyayaKayıt(sensoradı,nem,sıc): #csv dosyasına verileri kaydetme
-    os.system("echo '{}\t{}\t{}\t{}' >> '{}.csv'".format(time.strftime("%H:%M:%S"),sensoradı,sıc,nem,time.strftime("%Y %m"))) 
+    os.system("echo '{}\t{}\t{}\t{}\t{}' >> 'nemsicolcum/{}.csv'".format(time.strftime("%d"),time.strftime("%H:%M:%S"),sensoradı,sıc,nem,time.strftime("%Y %m")))
 
 def sıcKontrol(sıc,sıcaralık): #verilen aralık bilgisine göre sıcaklığı kontrol eder, boolean döner
     if sıc==None: return False
     elif sıcaralık[0]<=sıc<=sıcaralık[1]: return True
     else: return False
-    
+
 def ipNe():
     ip=None
     try:
@@ -101,7 +102,7 @@ while True:
     #sıcaklıklar=[]
     alarm=False
     okunanDeğerler={i:(sensorPins[i][0],get_data(i,sensorPins[i][1])) for i in sensorPins}
-    #sıc,nem=get_data(23)
+
     #pyexcel_ods.write_data(str(time.strftime("%Y %m"))+" data.ods",{time.strftime("%d"):[["Saat",time.strftime("%H:%M:%S")],["Sıcaklık",2],["Nem",2]]})
     for sensor in okunanDeğerler:
         sıc=okunanDeğerler[sensor][1][0]
@@ -115,8 +116,9 @@ while True:
         #sendalarm(okunanDeğerler)
     #elif not all([s<25 for s in sıcaklıklar]):
         #sendalarm(okunanDeğerler)
-            
+
     if alarm: sendalarm(okunanDeğerler)
-    time.sleep(600)
+    time.sleep(3600)
+
 
 
