@@ -30,39 +30,38 @@
 // Note that older versions of this library took an optional third parameter to
 // tweak the timings for faster processors.  This parameter is no longer needed
 // as the current DHT reading algorithm adjusts itself to work on faster procs.
-DHT dht(LAB, DHT11);
-DHT dht(ODA, DHT11);
-DHT dht(BD, DHT22);
+DHT lab(LAB, DHT11);
+DHT oda(ODA, DHT11);
+DHT bd(BD, DHT22);
 
 void setup() {
   Serial.begin(9600);
 //  Serial.println(F("DHTxx test!"));
 
-  dht.begin();
+  lab.begin();
+  oda.begin();
+  bd.begin();
+}
+
+string measure(DHT dht){
+  return dht.readHumidity()+"%:"+dht.readTemperature()+"°C ";
 }
 
 void loop() {
   // Wait a few seconds between measurements.
   delay(2000);
 
-  // Reading temperature or humidity takes about 250 milliseconds!
-  // Sensor readings may also be up to 2 seconds 'old' (its a very slow sensor)
-  float h = dht.readHumidity();
-  // Read temperature as Celsius (the default)
-  float t = dht.readTemperature();
-  // Read temperature as Fahrenheit (isFahrenheit = true)
-  //  float f = dht.readTemperature(true);
-
+  
   // Check if any reads failed and exit early (to try again).
   if (isnan(h) || isnan(t) ) {
     Serial.println(F("None1"));
     return;
   }
 
- // Serial.print(F("Humidity: "));
-  Serial.print(t);
-  Serial.print(F(" "));
-  Serial.print(h);
+  // Reading temperature or humidity takes about 250 milliseconds!
+  // Sensor readings may also be up to 2 seconds 'old' (its a very slow sensor)
+  Serial.print(measure(lab)+","+measure(oda)+","+measure(bd));
+
 //  Serial.print(F("°C "));
 
 }
