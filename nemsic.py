@@ -24,10 +24,10 @@ lastAlarmSent=""
 logging.basicConfig(filename='NemSıc.log', level=logging.DEBUG) #log tutmak için
 
 sensorPins={
-		23:("Ön Oda",DHT11,(0,32)), #birdençok sensor eklenebilir, sensoradı,sensor tipi, istenen sıcaklık aralığı
-		24:("Buzdolabı Sensoru",DHT22,(2,8)),
-		25:("Laboratuar",DHT11,(0,32))
-            }
+    23:("Ön Oda",DHT11,(0,32)), #birdençok sensor eklenebilir, sensoradı,sensor tipi, istenen sıcaklık aralığı
+                24:("Buzdolabı Sensoru",DHT22,(2,8)),
+                25:("Laboratuar",DHT11,(0,32))
+}
 
 #DHT işlemleri
 def get_data(sensorpin,sensortype):
@@ -48,6 +48,13 @@ def get_data(sensorpin,sensortype):
             time.sleep(0.77)
             continue
     return (sıc,nem)
+
+###
+
+
+    
+
+###
 
 
 def sendalarm(okunanDeğerler):
@@ -98,10 +105,28 @@ def ipNe():
     finally:
         return ip
 
+
+import serial
+def get_data_serial(port):
+    robinyo=serial.Serial(port="/dev/ttyACM0",)
+    robi = robinyo.readline()  #25.00t30.00 25.00t30.00 25.00t30.00
+    robiOkunanDeğerler={}
+    robi=robi.split(" ")
+    for i,sensor in range(len(robi)),robi:    #"0","25.00t30.00"
+        robiOkunanDeğerler["sensor"+string(i)]=sensor #{"sensor0":"25.00t30.00"}
+    for sensor in robiOkunanDeğerler:
+        if robiOkunanDeğerler[sensor]=="None":
+            pass
+        robiOkunanDeğerler[sensor]=robiOkunanDeğerler[sensor].split("t") #{"sensor0":["25.00","30.00"]}
+    return robiOkunanDeğerler
+
+        
+
+
 while True:
     #sıcaklıklar=[]
     alarm=False
-    okunanDeğerler={i:(sensorPins[i][0],get_data(i,sensorPins[i][1])) for i in sensorPins}
+    okunanDeğerler={i:(sensorPins[i][0],get_data(i,sensorPins[i][1])) for i in sensorPins}   # {pin23:("buzdolabı",(sıcaklık,nem))}
 
     #pyexcel_ods.write_data(str(time.strftime("%Y %m"))+" data.ods",{time.strftime("%d"):[["Saat",time.strftime("%H:%M:%S")],["Sıcaklık",2],["Nem",2]]})
     for sensor in okunanDeğerler:
