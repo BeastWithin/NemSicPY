@@ -29,6 +29,9 @@ sensorPins={
                 25:("Laboratuar",DHT11,(0,32))
 }
 
+
+mikrodenetleyici="arduino"  #"arduino" veya "raspi"
+
 #DHT işlemleri
 def get_data(sensorpin,sensortype):
     den=0
@@ -107,23 +110,25 @@ def ipNe():
 
 
 import serial
-def get_data_serial(port):
-    robinyo=serial.Serial(port="/dev/ttyACM0",)
+def get_data_serial(port="/dev/ttyACM0"):
+    robinyo=serial.Serial(port=port,)
     robi = robinyo.readline()  #25.00t30.00 25.00t30.00 25.00t30.00
+    robi=robi.decode().strip().split(" ") #byte objecti stringe dönüştürme, /n gibi şeyleri ve boşlukları atma ve boşluklardan listelere dönüştürme
     robiOkunanDeğerler={}
-    robi=robi.split(" ")
-    for i,sensor in range(len(robi)),robi:    #"0","25.00t30.00"
-        robiOkunanDeğerler["sensor"+string(i)]=sensor #{"sensor0":"25.00t30.00"}
+    for i,sensor in enumerate(robi):    #"0","25.00t30.00"
+        robiOkunanDeğerler["sensor"+str(i)]=sensor #{"sensor0":"25.00t30.00"}
     for sensor in robiOkunanDeğerler:
         if robiOkunanDeğerler[sensor]=="None":
             pass
         robiOkunanDeğerler[sensor]=robiOkunanDeğerler[sensor].split("t") #{"sensor0":["25.00","30.00"]}
-    return robiOkunanDeğerler
+    return robiOkunanDeğerler #{'sensor0': ['None'], 'sensor1': ['None'], 'sensor2': ['39.60', '22.20']}
 
-        
+while mikrodenetleyici=="arduino":
+    alarm=False
+    
 
 
-while True:
+while mikrodenetleyici=="raspi":
     #sıcaklıklar=[]
     alarm=False
     okunanDeğerler={i:(sensorPins[i][0],get_data(i,sensorPins[i][1])) for i in sensorPins}   # {pin23:("buzdolabı",(sıcaklık,nem))}
