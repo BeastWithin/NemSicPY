@@ -24,14 +24,14 @@ lastAlarmSent=""
 logging.basicConfig(filename='NemSıc.log', level=logging.DEBUG) #log tutmak için
 
 sensorPins={
-    23:("Ön Oda",DHT11,(0,32)), #birdençok sensor eklenebilir, sensoradı,sensor tipi, istenen sıcaklık aralığı
-                24:("Buzdolabı Sensoru",DHT22,(2,8)),
-                25:("Laboratuar",DHT11,(0,32))
+    3:("Ön Oda",DHT11,(0,32)), #birdençok sensor eklenebilir, sensoradı,sensor tipi, istenen sıcaklık aralığı
+                4:("Buzdolabı Sensoru",DHT22,(2,8)),
+                5:("Laboratuar",DHT11,(0,32))
 }
 
 
 mikrodenetleyici="arduino"  #"arduino" veya "raspi"
-
+arduino_serial_path="/dev/ttyACM0"
 #DHT işlemleri
 def get_data(sensorpin,sensortype):
     den=0
@@ -112,27 +112,31 @@ def ipNe():
 import serial
 def get_data_serial(port="/dev/ttyACM0"):
     robinyo=serial.Serial(port=port,)
-    robi = robinyo.readline()  #25.00t30.00 25.00t30.00 25.00t30.00
-    robi=robi.decode().strip().split(" ") #byte objecti stringe dönüştürme, /n gibi şeyleri ve boşlukları atma ve boşluklardan listelere dönüştürme
+    robi = robinyo.readline()  #3t NANt NANs4t NANt NANs5t26.60t23.10
+    robi=robi.decode().strip().replace(" ","").split("s") #byte objecti stringe dönüştürme, /n gibi şeyleri ve boşlukları atma ve boşluklardan listelere dönüştürme
+    #["3tNANtNAN","4tNANtNAN","5t26.60t23.10"]
     robiOkunanDeğerler={}
-    for i,sensor in enumerate(robi):    #"0","25.00t30.00"
-        robiOkunanDeğerler["sensor"+str(i)]=sensor #{"sensor0":"25.00t30.00"}
-    for sensor in robiOkunanDeğerler:
+    for i in robi:    
+        i=i.split("t") #["5","26.60","23.10"]
+        robiOkunanDeğerler[int(i[0])]=(sensorPins[int(i[0])][0],(float(i[1]),float(i[2]))) #{5:("Buzdolabı",(26.60,23.10)}
+###    for sensor in robiOkunanDeğerler:
         if robiOkunanDeğerler[sensor]=="None":
             pass
-        robiOkunanDeğerler[sensor]=robiOkunanDeğerler[sensor].split("t") #{"sensor0":["25.00","30.00"]}
+        robiOkunanDeğerler[sensor]=robiOkunanDeğerler[sensor].split("t")### #{"sensor0":["25.00","30.00"]}
+        
+        
     return robiOkunanDeğerler #{'sensor0': ['None'], 'sensor1': ['None'], 'sensor2': ['39.60', '22.20']}
 
-while mikrodenetleyici=="arduino":
-    alarm=False
-    
 
 
-while mikrodenetleyici=="raspi":
+while True:
     #sıcaklıklar=[]
     alarm=False
-    okunanDeğerler={i:(sensorPins[i][0],get_data(i,sensorPins[i][1])) for i in sensorPins}   # {pin23:("buzdolabı",(sıcaklık,nem))}
-
+    if mikrodenetleyici=="raspi":
+        okunanDeğerler={i:(sensorPins[i][0],get_data(i,sensorPins[i][1])) for i in sensorPins}   # {23:("buzdolabı",(sıcaklık,nem))}
+    if mikrodenetleyici=="arduino":
+        okunanDeğerler=get_data_serial(port=arduino_serial_path)
+        
     #pyexcel_ods.write_data(str(time.strftime("%Y %m"))+" data.ods",{time.strftime("%d"):[["Saat",time.strftime("%H:%M:%S")],["Sıcaklık",2],["Nem",2]]})
     for sensor in okunanDeğerler:
         sıc=okunanDeğerler[sensor][1][0]
