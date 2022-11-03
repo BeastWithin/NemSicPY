@@ -5,8 +5,8 @@ import os
 import time
 import requests
 from smtplib import SMTP                  # use this for standard SMTP protocol   (port 25, no encryption)
-from adafruit_dht import DHT11
-from adafruit_dht import DHT22
+#from adafruit_dht import DHT11
+#from adafruit_dht import DHT22
 from email.mime.text import MIMEText
 import logging
 
@@ -24,9 +24,9 @@ lastAlarmSent=""
 logging.basicConfig(filename='NemSıc.log', level=logging.DEBUG) #log tutmak için
 
 sensorPins={
-    3:("Ön Oda",DHT11,(0,32)), #birdençok sensor eklenebilir, sensoradı,sensor tipi, istenen sıcaklık aralığı
-                4:("Buzdolabı Sensoru",DHT22,(2,8)),
-                5:("Laboratuar",DHT11,(0,32))
+    3:("Ön Oda","DHT11",(0,32)), #birdençok sensor eklenebilir, sensoradı,sensor tipi, istenen sıcaklık aralığı
+                4:("Buzdolabı Sensoru","DHT22",(2,8)),
+                5:("Laboratuar","DHT11",(0,32))
 }
 
 
@@ -118,12 +118,14 @@ def get_data_serial(port="/dev/ttyACM0"):
     robiOkunanDeğerler={}
     for i in robi:    
         i=i.split("t") #["5","26.60","23.10"]
-        robiOkunanDeğerler[int(i[0])]=(sensorPins[int(i[0])][0],(float(i[1]),float(i[2]))) #{5:("Buzdolabı",(26.60,23.10)}
-###    for sensor in robiOkunanDeğerler:
-        if robiOkunanDeğerler[sensor]=="None":
-            pass
-        robiOkunanDeğerler[sensor]=robiOkunanDeğerler[sensor].split("t")### #{"sensor0":["25.00","30.00"]}
+        pinNo=int(i[0])
+        try: sıc=float(i[1])
+        except ValueError: sıc="None"
+        try: nem=float(i[2])
+        except ValueError: nem="None"
         
+        robiOkunanDeğerler[pinNo]=(sensorPins[pinNo][0],(sıc,nem)) #{5:("Buzdolabı",(26.60,23.10)}
+
         
     return robiOkunanDeğerler #{'sensor0': ['None'], 'sensor1': ['None'], 'sensor2': ['39.60', '22.20']}
 
