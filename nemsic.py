@@ -24,9 +24,9 @@ lastAlarmSent=""
 logging.basicConfig(filename='NemSıc.log', level=logging.DEBUG) #log tutmak için
 
 sensorPins={
-    3:("Ön Oda","DHT11",(0,32)), #birdençok sensor eklenebilir, sensoradı,sensor tipi, istenen sıcaklık aralığı
-                4:("Buzdolabı Sensoru","DHT22",(2,8)),
-                5:("Laboratuar","DHT11",(0,32))
+    4:("Ön Oda","DHT11",(0,32)), #birdençok sensor eklenebilir, sensoradı,sensor tipi, istenen sıcaklık aralığı
+                5:("Buzdolabı Sensoru","DHT22",(2,8)),
+                3:("Laboratuar","DHT11",(0,32))
 }
 
 
@@ -111,21 +111,28 @@ def ipNe():
 
 import serial
 def get_data_serial(port="/dev/ttyACM0"):
-    robinyo=serial.Serial(port=port,)
-    robi = robinyo.readline()  #3t NANt NANs4t NANt NANs5t26.60t23.10
+    robinyo=serial.Serial(port=port,timeout=5)
+   # time.sleep(3)
+    robi=""
+    while len(robi)<35: 
+        robi = robinyo.readline()  #3t NANt NANs4t NANt NANs5t26.60t23.10
     robi=robi.decode().strip().replace(" ","").split("s") #byte objecti stringe dönüştürme, /n gibi şeyleri ve boşlukları atma ve boşluklardan listelere dönüştürme
     #["3tNANtNAN","4tNANtNAN","5t26.60t23.10"]
     robiOkunanDeğerler={}
     for i in robi:    
         i=i.split("t") #["5","26.60","23.10"]
         pinNo=int(i[0])
-        try: sıc=float(i[1])
-        except ValueError: sıc="None"
-        try: nem=float(i[2])
-        except ValueError: nem="None"
+        try:
+            sıc=float(i[2])
+        except ValueError:
+            sıc="None"
+        try:
+            nem=float(i[1])
+        except ValueError: 
+            nem="None"
         
         robiOkunanDeğerler[pinNo]=(sensorPins[pinNo][0],(sıc,nem)) #{5:("Buzdolabı",(26.60,23.10)}
-
+        logging.info(robiOkunanDeğerler)
         
     return robiOkunanDeğerler #{'sensor0': ['None'], 'sensor1': ['None'], 'sensor2': ['39.60', '22.20']}
 
