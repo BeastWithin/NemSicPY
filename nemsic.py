@@ -110,12 +110,13 @@ def ipNe():
 
 
 import serial
-def get_data_serial(port="/dev/ttyACM0"):
-    robinyo=serial.Serial(port=port,timeout=5)
+robinyo=serial.Serial(port="/dev/ttyACM0",)
+def get_data_serial(açıkport=robinyo):
+
    # time.sleep(3)
     robi=""
-    while len(robi)<35: 
-        robi = robinyo.readline()  #3t NANt NANs4t NANt NANs5t26.60t23.10
+    while len(robi)<38: 
+        robi = açıkport.readline()  #3t NANt NANs4t NANt NANs5t26.60t23.10
     robi=robi.decode().strip().replace(" ","").split("s") #byte objecti stringe dönüştürme, /n gibi şeyleri ve boşlukları atma ve boşluklardan listelere dönüştürme
     #["3tNANtNAN","4tNANtNAN","5t26.60t23.10"]
     robiOkunanDeğerler={}
@@ -144,7 +145,7 @@ while True:
     if mikrodenetleyici=="raspi":
         okunanDeğerler={i:(sensorPins[i][0],get_data(i,sensorPins[i][1])) for i in sensorPins}   # {23:("buzdolabı",(sıcaklık,nem))}
     if mikrodenetleyici=="arduino":
-        okunanDeğerler=get_data_serial(port=arduino_serial_path)
+        okunanDeğerler=get_data_serial()
         
     #pyexcel_ods.write_data(str(time.strftime("%Y %m"))+" data.ods",{time.strftime("%d"):[["Saat",time.strftime("%H:%M:%S")],["Sıcaklık",2],["Nem",2]]})
     for sensor in okunanDeğerler:
@@ -162,6 +163,7 @@ while True:
 
     if alarm: sendalarm(okunanDeğerler)
     time.sleep(3600)
+
 
 
 
