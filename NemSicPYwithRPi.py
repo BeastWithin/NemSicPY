@@ -14,9 +14,8 @@ SMTPserver = 'smtp.office365.com'
 port =587
 sender =     'nemsic@hotmail.com'
 destination = ['eczsinancengiz@gmail.com']
-#destination = ['eczpinar.ekmek@gmail.com']
 USERNAME = "nemsic@hotmail.com"
-PASSWORD = "Y3QLt66TLGRkxNt"
+PASSWORD = ""
 # typical values for text_subtype are plain, html, xml
 text_subtype = 'plain'
 subject="NemSıc Alarm"
