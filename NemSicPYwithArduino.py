@@ -1,8 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-import sys
-import os
-import time
+import sys, os, time
 import requests
 from smtplib import SMTP                  # use this for standard SMTP protocol   (port 25, no encryption)
 #from adafruit_dht import DHT11
@@ -17,10 +15,12 @@ destination = ['eczsinancengiz@gmail.com']
 USERNAME = "nemsic@hotmail.com"
 PASSWORD = ""
 # typical values for text_subtype are plain, html, xml
-text_subtype = 'plain'
-subject="NemSıc Alarm"
-lastAlarmSent=""
+
+#lastAlarmSent=""
 logging.basicConfig(filename='NemSıc.log', level=logging.DEBUG) #log tutmak için
+
+ayGün=time.strftime("%d")
+
 
 sensorPins={
     4:("Ön Oda","DHT11",(0,32)), #birdençok sensor eklenebilir, sensoradı,sensor tipi, istenen sıcaklık aralığı
@@ -57,14 +57,8 @@ def get_data(sensorpin,sensortype):
     
 
 ###
-
-
-def sendalarm(okunanDeğerler):
-    content="\n{}\n{}".format(str(time.ctime()),ipNe())# şimdiki zamanı ekleme
-    for sensor in okunanDeğerler:
-        sıc,nem=okunanDeğerler[sensor][1]
-        sensoradı=okunanDeğerler[sensor][0]
-        content+="\nSensor:{}\tSıcaklık:{}°C\tNem:%{}".format(sensoradı,sıc,nem) #ne kadar sensor varsa okumaları listeleme
+def sendEmail(content, subject,
+ sender=sender,destination=destination,USERNAME=USERNAME,PASSWORD=PASSWORD,SMTPserver=SMTPserver,port=port, text_subtype = 'plain'):
     msg = MIMEText(content, text_subtype)
     msg['Subject']=       subject
     msg['From']   = sender # some SMTP servers will do this automatically, not all
@@ -81,24 +75,40 @@ def sendalarm(okunanDeğerler):
     except:
         logging.error("Login Hatası")
         return
-    #try:
-        #print("{} tarafından {} adresine {} konulu mesaj yollanıyor...",format(sender,destination,subject))
     try:
         conn.sendmail(sender, destination, msg.as_string())
     except:
         logging.error("Email gönderimi başarısız")
-    #except:
-        #print("Başaramadık abi")
-    #finally:
+
     conn.quit()
 
+def sendalarm(okunanDeğerler):
+    content="\n{}\n{}".format(str(time.ctime()),ipNe())# şimdiki zamanı ekleme
+    for sensor in okunanDeğerler:
+        sıc,nem=okunanDeğerler[sensor][1]
+        sensoradı=okunanDeğerler[sensor][0]
+        content+="\nSensor:{}\tSıcaklık:{}°C\tNem:%{}".format(sensoradı,sıc,nem) #ne kadar sensor varsa okumaları listeleme
+    sendEmail(content, "NemSıc Alarm")
+
+def sendGünlükRapor(content):
+    """Gün sonu yapacağı kayıt için fonksiyon
+    """
+    sendEmail(content,"NemSıc Günlük Rapor")
+
+
 def dosyayaKayıt(sensoradı,nem,sıc): #csv dosyasına verileri kaydetme
-    os.system("echo '{}\t{}\t{}\t{}\t{}' >> 'nemsicolcum/{}.csv'".format(time.strftime("%d"),time.strftime("%H:%M:%S"),sensoradı,sıc,nem,time.strftime("%Y %m")))
+    os.system("echo '{}\t{}\t{}\t{}\t{}' >> '/nemsicolcum/{}.csv'".format(time.strftime("%d"),time.strftime("%H:%M:%S"),sensoradı,sıc,nem,time.strftime("%Y %m")))
 
 def sıcKontrol(sıc,sıcaralık): #verilen aralık bilgisine göre sıcaklığı kontrol eder, boolean döner
     if sıc==None: return False
     elif sıcaralık[0]<=sıc<=sıcaralık[1]: return True
     else: return False
+
+def bipbipbip(freq=0.5,count=3):
+    """PC speaker'dan bipleme sesi çıkarma fonksiyonu"""
+    for i in range(count):
+        print("\a")
+        time.sleep(freq)
 
 def ipNe():
     ip=None
@@ -138,7 +148,7 @@ def get_data_serial(açıkport=robinyo):
 
 
 def mainloop():
-    
+    global ayGün
     while True:
         #sıcaklıklar=[]
         alarm=False
@@ -146,7 +156,7 @@ def mainloop():
             okunanDeğerler={i:(sensorPins[i][0],get_data(i,sensorPins[i][1])) for i in sensorPins}   # {23:("buzdolabı",(sıcaklık,nem))}
         if mikrodenetleyici=="arduino":
             okunanDeğerler=get_data_serial()
-
+            
         #pyexcel_ods.write_data(str(time.strftime("%Y %m"))+" data.ods",{time.strftime("%d"):[["Saat",time.strftime("%H:%M:%S")],["Sıcaklık",2],["Nem",2]]})
         for sensor in okunanDeğerler:
             sıc=okunanDeğerler[sensor][1][0]
@@ -156,20 +166,22 @@ def mainloop():
             dosyayaKayıt(sensoradı,nem,sıc)
             if not sıcKontrol(sıc,sensorPins[sensor][2]): #sensor sıcaklığı ve sensor aralığı
                 alarm=True
-        #if not all([s for s in sıcaklıklar]):
-            #sendalarm(okunanDeğerler)
-        #elif not all([s<25 for s in sıcaklıklar]):
-            #sendalarm(okunanDeğerler)
 
-        if alarm: sendalarm(okunanDeğerler)
+
+        if alarm:
+            bipbipbip()
+            sendalarm(okunanDeğerler)
+        
+        if not ayGün ==time.strftime("%d"):
+            sendGünlükRapor(okunanDeğerler)
+            ayGün=time.strftime("%d")
         time.sleep(3600)
+
+
 
 if __name__ == "__main__":
     if len(sys.argv)==1:
         mainloop()
-    else 
+    else:
         if "-a" in sys.argv:
             print(str(get_data_serial()))
-            
-        
-
