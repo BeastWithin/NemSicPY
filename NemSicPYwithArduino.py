@@ -20,7 +20,7 @@ PASSWORD = ""
 logging.basicConfig(filename='NemSıc.log', level=logging.DEBUG) #log tutmak için
 
 ayGün=time.strftime("%d")
-
+ölçümKlasörü="/nemsicolcum/"
 
 sensorPins={
     4:("Ön Oda","DHT11",(0,32)), #birdençok sensor eklenebilir, sensoradı,sensor tipi, istenen sıcaklık aralığı
@@ -96,8 +96,9 @@ def sendGünlükRapor(content):
     sendEmail(content,"NemSıc Günlük Rapor")
 
 
-def dosyayaKayıt(sensoradı,nem,sıc): #csv dosyasına verileri kaydetme
-    os.system("echo '{}\t{}\t{}\t{}\t{}' >> '/nemsicolcum/{}.csv'".format(time.strftime("%d"),time.strftime("%H:%M:%S"),sensoradı,sıc,nem,time.strftime("%Y %m")))
+def dosyayaKayıt(sensoradı,nem,sıc,dosyadizini=ölçümKlasörü): #csv dosyasına verileri kaydetme
+    dosyayolu=dosyadizini+'{}.csv'.format(time.strftime("%Y %m"))
+    os.system("echo '{}\t{}\t{}\t{}\t{}' >> '{}'".format(time.strftime("%d"),time.strftime("%H:%M:%S"),sensoradı,sıc,nem,dosyayolu))
 
 def sıcKontrol(sıc,sıcaralık): #verilen aralık bilgisine göre sıcaklığı kontrol eder, boolean döner
     if sıc==None: return False
@@ -162,7 +163,6 @@ def mainloop():
             sıc=okunanDeğerler[sensor][1][0]
             nem=okunanDeğerler[sensor][1][1]
             sensoradı=sensorPins[sensor][0]
-            #sıcaklıklar.append(sıc)
             dosyayaKayıt(sensoradı,nem,sıc)
             if not sıcKontrol(sıc,sensorPins[sensor][2]): #sensor sıcaklığı ve sensor aralığı
                 alarm=True
@@ -173,7 +173,10 @@ def mainloop():
             sendalarm(okunanDeğerler)
         
         if not ayGün ==time.strftime("%d"):
-            sendGünlükRapor(okunanDeğerler)
+            try:
+                sendGünlükRapor(str(okunanDeğerler))
+            except:
+                logging.error("Günlük rapor yollanamadı.")
             ayGün=time.strftime("%d")
         time.sleep(3600)
 
