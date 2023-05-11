@@ -13,7 +13,7 @@ port =587
 sender =     'nemsic@hotmail.com'
 destination = ['eczsinancengiz@gmail.com']
 USERNAME = "nemsic@hotmail.com"
-PASSWORD = "Y3QLt66TLGRkxNt"
+PASSWORD = ""
 # typical values for text_subtype are plain, html, xml
 
 #lastAlarmSent=""
