@@ -8,6 +8,8 @@ from smtplib import SMTP                  # use this for standard SMTP protocol 
 from email.mime.text import MIMEText
 import logging
 
+
+
 SMTPserver = 'smtp.office365.com'
 port =587
 sender =     'nemsic@hotmail.com'
@@ -57,6 +59,13 @@ def get_data(sensorpin,sensortype):
     
 
 ###
+def plotReport(kayıtDizini=ölçümKlasörü,veriDosyasıYolu,gün):
+    from plotly.express import line as plotline
+    from pandas import read_csv
+    data=read_csv(veriDosyasıYolu,sep="\t")
+    fig = plotline( data, x="Zaman", y="Sıcaklık", color="Sensor",title=gün+' Günü Sıcaklık Raporu')
+    fig.write_html(os.path.join(kayıtDizini,"rapor.html"))  
+
 def sendEmail(content, subject,
  sender=sender,destination=destination,USERNAME=USERNAME,PASSWORD=PASSWORD,SMTPserver=SMTPserver,port=port, text_subtype = 'plain'):
     msg = MIMEText(content, text_subtype)
