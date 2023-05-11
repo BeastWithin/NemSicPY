@@ -13,7 +13,7 @@ port =587
 sender =     'nemsic@hotmail.com'
 destination = ['eczsinancengiz@gmail.com']
 USERNAME = "nemsic@hotmail.com"
-PASSWORD = ""
+PASSWORD = "Y3QLt66TLGRkxNt"
 # typical values for text_subtype are plain, html, xml
 
 #lastAlarmSent=""
@@ -91,14 +91,23 @@ def sendalarm(okunanDeğerler):
     sendEmail(content, "NemSıc Alarm")
 
 def sendGünlükRapor(content):
-    """Gün sonu yapacağı kayıt için fonksiyon
-    """
+    """Gün sonu yapacağı kayıt için fonksiyon"""
+    
     sendEmail(content,"NemSıc Günlük Rapor")
 
 
-def dosyayaKayıt(sensoradı,nem,sıc,dosyadizini=ölçümKlasörü): #csv dosyasına verileri kaydetme
-    dosyayolu=dosyadizini+'{}.csv'.format(time.strftime("%Y %m"))
-    os.system("echo '{}\t{}\t{}\t{}\t{}' >> '{}'".format(time.strftime("%d"),time.strftime("%H:%M:%S"),sensoradı,sıc,nem,dosyayolu))
+def dosyayaKayıt(sensoradı,nem,sıc,dosyadizini=ölçümKlasörü):
+    """Csv dosyasına verileri kaydetme"""
+    
+    yıl, ay, gün= time.strftime("%Y %m %d").split()
+    dosyadizini=os.path.join(dosyadizini,yıl,ay)
+    try:
+        os.makedirs(dosyadizini)
+    except:
+        pass
+    dosyaAdı='{}.csv'.format(gün)
+    dosyayolu=os.path.join(dosyadizini,dosyaAdı)
+    os.system("echo '{}\t{}\t{}\t{}' >> '{}'".format(sensoradı,time.strftime("%H:%M:%S"),sıc,nem,dosyayolu))
 
 def sıcKontrol(sıc,sıcaralık): #verilen aralık bilgisine göre sıcaklığı kontrol eder, boolean döner
     if sıc==None: return False
