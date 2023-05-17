@@ -10,13 +10,14 @@ import logging
 
 
 
-SMTPserver = 'smtp.office365.com'
-port =587
-sender =     'nemsic@hotmail.com'
-destination = ['eczsinancengiz@gmail.com']
-USERNAME = "nemsic@hotmail.com"
-PASSWORD = ""
-# typical values for text_subtype are plain, html, xml
+#SMTPserver = 'smtp.office365.com'
+#port =587
+#sender =     'nemsic@hotmail.com'
+#destination = ['eczsinancengiz@gmail.com']
+#USERNAME = "nemsic@hotmail.com"
+#PASSWORD = ""
+# email fonksiyonunun değişmezleri githubta kolaylık olması açısından başka dosyadan import olacak
+from değişmezler import *
 
 #lastAlarmSent=""
 logging.basicConfig(filename='NemSıc.log', level=logging.DEBUG) #log tutmak için
@@ -59,7 +60,7 @@ def get_data(sensorpin,sensortype):
     
 
 ###
-def plotReport(kayıtDizini=ölçümKlasörü,veriDosyasıYolu,gün):
+def plotReport(veriDosyasıYolu,gün,kayıtDizini=ölçümKlasörü,):
     from plotly.express import line as plotline
     from pandas import read_csv
     data=read_csv(veriDosyasıYolu,sep="\t")
@@ -116,18 +117,20 @@ def dosyayaKayıt(sensoradı,nem,sıc,dosyadizini=ölçümKlasörü):
         pass
     dosyaAdı='{}.csv'.format(gün)
     dosyayolu=os.path.join(dosyadizini,dosyaAdı)
-    os.system("echo '{}\t{}\t{}\t{}' >> '{}'".format(sensoradı,time.strftime("%H:%M:%S"),sıc,nem,dosyayolu))
+    if not os.path.exists(dosyayolu):
+        os.system("echo 'Zaman\tSensor\tSıcaklık\tNem' >> '{}'".format(dosyayolu))
+    else:
+        os.system("echo '{}\t{}\t{}\t{}' >> '{}'".format(time.strftime("%H:%M:%S"),sensoradı,sıc,nem,dosyayolu))    
+    
 
 def sıcKontrol(sıc,sıcaralık): #verilen aralık bilgisine göre sıcaklığı kontrol eder, boolean döner
     if sıc==None: return False
     elif sıcaralık[0]<=sıc<=sıcaralık[1]: return True
     else: return False
 
-def bipbipbip(freq=0.5,count=3):
+def bipbipbip(freq=5550,count=5,length=300):
     """PC speaker'dan bipleme sesi çıkarma fonksiyonu"""
-    for i in range(count):
-        print("\a")
-        time.sleep(freq)
+    os.system("beep -f {} -l {} -r {}".format(freq,length,count))
 
 def ipNe():
     ip=None
