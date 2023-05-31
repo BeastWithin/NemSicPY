@@ -9,6 +9,9 @@ from email.mime.text import MIMEText
 import logging
 
 
+from email import encoders
+from email.mime.base import MIMEBase
+from email.mime.multipart import MIMEMultipart
 
 #SMTPserver = 'smtp.office365.com'
 #port =587
@@ -35,6 +38,7 @@ sensorPins={
 mikrodenetleyici="arduino"  #"arduino" veya "raspi"
 arduino_serial_path="/dev/ttyACM0"
 #DHT işlemleri
+
 def get_data(sensorpin,sensortype):
     den=0
     sıc=None
@@ -60,18 +64,37 @@ def get_data(sensorpin,sensortype):
     
 
 ###
-def plotReport(veriDosyasıYolu,gün,kayıtDizini=ölçümKlasörü,):
+def plotReport(veriDosyasıYolu,gün,kayıtDizini=ölçümKlasörü,raporÇıktısı="rapor.png"):
     from plotly.express import line as plotline
     from pandas import read_csv
     data=read_csv(veriDosyasıYolu,sep="\t")
     fig = plotline( data, x="Zaman", y="Sıcaklık", color="Sensor",title=gün+' Günü Sıcaklık Raporu')
-    fig.write_html(os.path.join(kayıtDizini,"rapor.html"))  
+    fig.write_image(os.path.join(kayıtDizini,raporÇıktısı))  
 
-def sendEmail(content, subject,
+def sendEmail(content, subject, filePath=None,
  sender=sender,destination=destination,USERNAME=USERNAME,PASSWORD=PASSWORD,SMTPserver=SMTPserver,port=port, text_subtype = 'plain'):
-    msg = MIMEText(content, text_subtype)
+    msg = MIMEMultipart()
+    msg.attach(MIMEText(content, text_subtype))
     msg['Subject']=       subject
     msg['From']   = sender # some SMTP servers will do this automatically, not all
+    if filePath:
+        with open(filePath, 'rb') as f:
+            # Add file as application/octet-stream
+            # Email client can usually download this automatically as attachment
+            part = MIMEBase("application", "octet-stream")
+            part.set_payload(f.read())
+            
+            # Encode file in ASCII characters to send by email    
+            encoders.encode_base64(part)
+            
+            # Add header as key/value pair to attachment part
+            part.add_header(
+                "Content-Disposition",
+                "attachment; filename= {}".format(filePath),
+            )
+            
+            # Add attachment to message and convert message to string
+            msg.attach(part)              
     try:
         conn = SMTP(SMTPserver,port)
     except:
@@ -91,7 +114,7 @@ def sendEmail(content, subject,
         logging.error("Email gönderimi başarısız")
 
     conn.quit()
-
+    
 def sendalarm(okunanDeğerler):
     content="\n{}\n{}".format(str(time.ctime()),ipNe())# şimdiki zamanı ekleme
     for sensor in okunanDeğerler:
@@ -100,10 +123,13 @@ def sendalarm(okunanDeğerler):
         content+="\nSensor:{}\tSıcaklık:{}°C\tNem:%{}".format(sensoradı,sıc,nem) #ne kadar sensor varsa okumaları listeleme
     sendEmail(content, "NemSıc Alarm")
 
-def sendGünlükRapor(content):
-    """Gün sonu yapacağı kayıt için fonksiyon"""
-    
-    sendEmail(content,"NemSıc Günlük Rapor")
+def sendGünlükRapor(gün,ölçümKlasörü=ölçümKlasörü,raporÇıktısı="rapor.png"):
+    """Gün sonu yollayacağı rapor için fonksiyon"""
+    dosyaYolu=os.path.join(ölçümKlasörü,time.strftime("%Y"),time.strftime("%m"),gün+".csv")
+    raporYolu=os.path.join(ölçümKlasörü,raporÇıktısı)
+    plotReport(dosyaYolu,gün,)
+    content="{} günü günlük ölçüm raporudur.".format(gün)
+    sendEmail(content,"NemSıc Günlük Rapor",filePath=raporYolu)
 
 
 def dosyayaKayıt(sensoradı,nem,sıc,dosyadizini=ölçümKlasörü):
@@ -141,7 +167,7 @@ def ipNe():
 
 
 import serial
-robinyo=serial.Serial(port="/dev/ttyACM0",)
+robinyo=serial.Serial(port=arduino_serial_path,)
 def get_data_serial(açıkport=robinyo):
 
    # time.sleep(3)
@@ -164,12 +190,12 @@ def get_data_serial(açıkport=robinyo):
             nem="None"
         
         robiOkunanDeğerler[pinNo]=(sensorPins[pinNo][0],(sıc,nem)) #{5:("Buzdolabı",(26.60,23.10)}
-        logging.info(robiOkunanDeğerler)
+        #logging.info(robiOkunanDeğerler)
         
     return robiOkunanDeğerler #{'sensor0': ['None'], 'sensor1': ['None'], 'sensor2': ['39.60', '22.20']}
 
 
-def mainloop():
+def mainloop(ölçümaralığı):
     global ayGün
     while True:
         #sıcaklıklar=[]
@@ -190,22 +216,26 @@ def mainloop():
 
 
         if alarm:
-            bipbipbip()
+            try:
+                bipbipbip()
+            except:
+                logging.error("Alarm sesi verilemedi.")
             sendalarm(okunanDeğerler)
         
         if not ayGün ==time.strftime("%d"):
             try:
-                sendGünlükRapor(str(okunanDeğerler))
+                sendGünlükRapor(ayGün)
             except:
                 logging.error("Günlük rapor yollanamadı.")
             ayGün=time.strftime("%d")
-        time.sleep(3600)
+        time.sleep(ölçümaralığı)
 
 
 
 if __name__ == "__main__":
     if len(sys.argv)==1:
-        mainloop()
+        ölçümaralığı=600
+        mainloop(ölçümaralığı)
     else:
         if "-a" in sys.argv:
             print(str(get_data_serial()))
